@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Tabata</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .config-grid {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input {
+            width: 80px;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3a3a3a;
+            color: white;
+            text-align: center;
+        }
+
+        .display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #phase {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #timer {
+            font-size: 60px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        #roundCounter {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #startBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #startBtn:hover {
+            background-color: #45a049;
+        }
+
+        #resetBtn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        #resetBtn:hover {
+            background-color: #da190b;
+        }
+
+        .phase-prep { color: #64B5F6; }
+        .phase-work { color: #81C784; }
+        .phase-rest { color: #FFB74D; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Timer Tabata</h1>
+        
+        <div class="config-grid">
+            <div class="config-item">
+                <label>Preparación (seg):</label>
+                <input type="number" id="prepTime" value="10" min="0">
+            </div>
+            <div class="config-item">
+                <label>Trabajo (seg):</label>
+                <input type="number" id="workTime" value="20" min="0">
+            </div>
+            <div class="config-item">
+                <label>Descanso (seg):</label>
+                <input type="number" id="restTime" value="10" min="0">
+            </div>
+            <div class="config-item">
+                <label>Rounds:</label>
+                <input type="number" id="rounds" value="8" min="1">
+            </div>
+        </div>
+
+        <div class="display">
+            <div id="phase">Preparación</div>
+            <div id="timer">00:00</div>
+            <div id="roundCounter">Round: 0 / 8</div>
+        </div>
+
+        <div class="buttons">
+            <button id="startBtn">Iniciar</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const timer = {
+            prepTime: 10,
+            workTime: 20,
+            restTime: 10,
+            rounds: 8,
+            currentRound: 0,
+            currentPhase: 'prep',
+            timeLeft: 0,
+            isRunning: false,
+            interval: null,
+
+            elements: {
+                timer: document.getElementById('timer'),
+                phase: document.getElementById('phase'),
+                roundCounter: document.getElementById('roundCounter'),
+                startBtn: document.getElementById('startBtn'),
+                resetBtn: document.getElementById('resetBtn'),
+                prepInput: document.getElementById('prepTime'),
+                workInput: document.getElementById('workTime'),
+                restInput: document.getElementById('restTime'),
+                roundsInput: document.getElementById('rounds')
+            },
+
+            init() {
+                this.elements.startBtn.addEventListener('click', () => this.toggleTimer());
+                this.elements.resetBtn.addEventListener('click', () => this.reset());
+                this.reset();
+            },
+
+            formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            },
+
+            updateDisplay() {
+                this.elements.timer.textContent = this.formatTime(this.timeLeft);
+                this.elements.roundCounter.textContent = `Round: ${this.currentRound} / ${this.rounds}`;
+                
+                this.elements.phase.className = '';
+                switch(this.currentPhase) {
+                    case 'prep':
+                        this.elements.phase.textContent = 'Preparación';
+                        this.elements.phase.classList.add('phase-prep');
+                        break;
+                    case 'work':
+                        this.elements.phase.textContent = '¡TRABAJO!';
+                        this.elements.phase.classList.add('phase-work', 'pulse');
+                        break;
+                    case 'rest':
+                        this.elements.phase.textContent = 'Descanso';
+                        this.elements.phase.classList.add('phase-rest');
+                        break;
+                }
+            },
+
+            playBeep() {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = ctx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.connect(ctx.destination);
+                oscillator.frequency.value = 800;
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 100);
+            },
+
+            nextPhase() {
+                this.playBeep();
+
+                if (this.currentPhase === 'prep') {
+                    this.currentPhase = 'work';
+                    this.timeLeft = this.workTime;
+                    this.currentRound = 1;
+                } else if (this.currentPhase === 'work') {
+                    if (this.currentRound >= this.rounds) {
+                        this.finish();
+                        return;
+                    }
+                    this.currentPhase = 'rest';
+                    this.timeLeft = this.restTime;
+                } else {
+                    this.currentPhase = 'work';
+                    this.timeLeft = this.workTime;
+                    this.currentRound++;
+                }
+                
+                this.updateDisplay();
+            },
+
+            finish() {
+                this.pause();
+                alert('¡Entrenamiento completado!');
+                this.reset();
+            },
+
+            toggleTimer() {
+                if (this.isRunning) {
+                    this.pause();
+                } else {
+                    this.start();
+                }
+            },
+
+            start() {
+                if (!this.isRunning) {
+                    if (this.timeLeft === this.prepTime && this.currentPhase === 'prep') {
+                        this.updateConfig();
+                    }
+                    
+                    this.isRunning = true;
+                    this.elements.startBtn.textContent = 'Pausar';
+                    this.elements.startBtn.style.backgroundColor = '#FFA500';
+                    
+                    this.interval = setInterval(() => {
+                        this.timeLeft--;
+                        if (this.timeLeft < 0) {
+                            this.nextPhase();
+                        } else {
+                            this.updateDisplay();
+                        }
+                    }, 1000);
+                }
+            },
+
+            pause() {
+                this.isRunning = false;
+                this.elements.startBtn.textContent = 'Continuar';
+                this.elements.startBtn.style.backgroundColor = '#4CAF50';
+                clearInterval(this.interval);
+            },
+
+            updateConfig() {
+                this.prepTime = parseInt(this.elements.prepInput.value) || 10;
+                this.workTime = parseInt(this.elements.workInput.value) || 20;
+                this.restTime = parseInt(this.elements.restInput.value) || 10;
+                this.rounds = parseInt(this.elements.roundsInput.value) || 8;
+                this.timeLeft = this.prepTime;
+            },
+
+            reset() {
+                this.updateConfig();
+                clearInterval(this.interval);
+                this.isRunning = false;
+                this.currentRound = 0;
+                this.currentPhase = 'prep';
+                this.timeLeft = this.prepTime;
+                this.elements.startBtn.textContent = 'Iniciar';
+                this.elements.startBtn.style.backgroundColor = '#4CAF50';
+                this.updateDisplay();
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => timer.init());
+    </script>
+</body>
+</html>
