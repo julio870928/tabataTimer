@@ -4,253 +4,429 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timer Tabata</title>
+    <!-- Fuentes de Apple SF Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'apple-blue': '#0071e3',
+                        'apple-gray': '#f5f5f7',
+                        'apple-dark': '#1d1d1f',
+                    },
+                }
+            }
+        }
+    </script>
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #0396FF, #0071e3);
+            --surface-gradient: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            --work-gradient: linear-gradient(135deg, #02AABD, #00CDAC);
+            --rest-gradient: linear-gradient(135deg, #6D6AE3, #8693FB);
+            --prep-gradient: linear-gradient(135deg, #F7A958, #F7C458);
+        }
+        
         body {
-            background-color: #1a1a1a;
-            color: white;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000000;
+            background-image: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
         }
-
-        .container {
-            background-color: #2a2a2a;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            width: 90%;
-            max-width: 400px;
+        
+        /* Efecto Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
         }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
+        
+        /* Efecto Neomórfico */
+        .neomorphic {
+            border-radius: 24px;
+            box-shadow: 
+                8px 8px 16px rgba(0, 0, 0, 0.25),
+                -8px -8px 16px rgba(255, 255, 255, 0.03);
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
         }
-
-        .config-grid {
-            display: grid;
-            gap: 10px;
-            margin-bottom: 20px;
+        
+        .neomorphic:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                10px 10px 20px rgba(0, 0, 0, 0.3),
+                -10px -10px 20px rgba(255, 255, 255, 0.05);
         }
-
-        .config-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        input {
-            width: 80px;
-            padding: 5px;
-            border: none;
-            border-radius: 5px;
-            background-color: #3a3a3a;
-            color: white;
-            text-align: center;
-        }
-
-        .display {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        #phase {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        #timer {
-            font-size: 60px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        #roundCounter {
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #startBtn {
-            background-color: #4CAF50;
-            color: white;
-        }
-
-        #startBtn:hover {
-            background-color: #45a049;
-        }
-
-        #resetBtn {
-            background-color: #f44336;
-            color: white;
-        }
-
-        #resetBtn:hover {
-            background-color: #da190b;
-        }
-
-        .phase-prep { color: #64B5F6; }
-        .phase-work { color: #81C784; }
-        .phase-rest { color: #FFB74D; }
-
+        
+        /* Animaciones */
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
         }
-
-        .pulse {
-            animation: pulse 1s infinite;
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes countdownBlink {
+            0%, 100% { opacity: 1; }
+            10% { opacity: 0.7; }
+        }
+        
+        @keyframes progressAnimation {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 100; }
+        }
+        
+        .animate-pulse-custom {
+            animation: pulse 1.5s infinite cubic-bezier(0.45, 0, 0.55, 1);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.6s forwards cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.4s forwards cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        /* Estilo de botones */
+        .btn {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255,255,255,0.1), rgba(255,255,255,0));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .btn:hover:after {
+            opacity: 1;
+        }
+        
+        .btn:active {
+            transform: scale(0.96);
+        }
+        
+        /* Inputs estilo Apple */
+        .apple-input {
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .apple-input:focus {
+            box-shadow: 0 0 0 2px rgba(0, 113, 227, 0.6);
+            border-color: #0071e3;
+        }
+        
+        /* Clases para las fases */
+        .phase-work {
+            background: var(--work-gradient);
+        }
+        
+        .phase-rest {
+            background: var(--rest-gradient);
+        }
+        
+        .phase-prep {
+            background: var(--prep-gradient);
+        }
+        
+        /* Progress timer */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            stroke-linecap: round;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Timer Tabata</h1>
-        
-        <div class="config-grid">
-            <div class="config-item">
-                <label>Preparación (seg):</label>
-                <input type="number" id="prepTime" value="10" min="0">
-            </div>
-            <div class="config-item">
-                <label>Trabajo (seg):</label>
-                <input type="number" id="workTime" value="20" min="0">
-            </div>
-            <div class="config-item">
-                <label>Descanso (seg):</label>
-                <input type="number" id="restTime" value="10" min="0">
-            </div>
-            <div class="config-item">
-                <label>Rounds:</label>
-                <input type="number" id="rounds" value="8" min="1">
-            </div>
-        </div>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-6">
+    <!-- Partículas de fondo -->
+    <div class="fixed inset-0 -z-10 opacity-30">
+        <div id="particles-js"></div>
+    </div>
 
-        <div class="display">
-            <div id="phase">Preparación</div>
-            <div id="timer">00:00</div>
-            <div id="roundCounter">Round: 0 / 8</div>
-        </div>
+    <!-- Contenedor principal -->
+    <div class="container max-w-md w-full animate-fade-in">
+        <!-- Tarjeta principal -->
+        <div class="glass neomorphic p-8">
+            <!-- Logo y título -->
+            <div class="flex flex-col items-center justify-center mb-8">
+                <div class="w-16 h-16 mb-4 bg-gradient-to-br from-apple-blue to-sky-500 rounded-2xl flex items-center justify-center shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-white text-center">Timer Tabata</h1>
+            </div>
+            
+            <!-- Configuración -->
+            <div id="config" class="space-y-5 mb-8">
+                <div class="flex justify-between items-center">
+                    <label class="text-gray-300 font-medium">Preparación (seg):</label>
+                    <input type="number" id="prepTime" value="10" min="0" 
+                           class="apple-input w-24 text-right rounded-lg px-3 py-2 text-white focus:outline-none">
+                </div>
+                <div class="flex justify-between items-center">
+                    <label class="text-gray-300 font-medium">Trabajo (seg):</label>
+                    <input type="number" id="workTime" value="20" min="0"
+                           class="apple-input w-24 text-right rounded-lg px-3 py-2 text-white focus:outline-none">
+                </div>
+                <div class="flex justify-between items-center">
+                    <label class="text-gray-300 font-medium">Descanso (seg):</label>
+                    <input type="number" id="restTime" value="10" min="0"
+                           class="apple-input w-24 text-right rounded-lg px-3 py-2 text-white focus:outline-none">
+                </div>
+                <div class="flex justify-between items-center">
+                    <label class="text-gray-300 font-medium">Rounds:</label>
+                    <input type="number" id="rounds" value="8" min="1"
+                           class="apple-input w-24 text-right rounded-lg px-3 py-2 text-white focus:outline-none">
+                </div>
+            </div>
 
-        <div class="buttons">
-            <button id="startBtn">Iniciar</button>
-            <button id="resetBtn">Reset</button>
+            <!-- Timer Display -->
+            <div class="mb-8">
+                <!-- Contenedor circular del timer -->
+                <div class="relative flex flex-col items-center">
+                    <!-- Circulo de progreso -->
+                    <div class="relative w-64 h-64" id="progress-ring-container">
+                        <svg class="w-full h-full" viewBox="0 0 120 120">
+                            <!-- Círculo base -->
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255, 255, 255, 0.1)" stroke-width="8"></circle>
+                            <!-- Círculo de progreso -->
+                            <circle id="progress-circle" class="progress-ring__circle" cx="60" cy="60" r="54" fill="none" stroke="#0071e3" stroke-width="8" stroke-dasharray="339.292" stroke-dashoffset="0"></circle>
+                        </svg>
+                        <!-- Tiempo y fase -->
+                        <div class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center">
+                            <div id="phase" class="text-lg font-medium mb-1 px-3 py-1 rounded-full animate-slide-in" style="opacity: 0.9;">Preparado</div>
+                            <div id="timer" class="text-6xl font-bold tracking-tight animate-pulse-custom">00:00</div>
+                            <div id="roundCounter" class="text-lg text-gray-300 mt-2">Round: 0 / 8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicadores de fase -->
+            <div class="flex justify-center space-x-2 mb-8">
+                <div id="prep-indicator" class="w-3 h-3 rounded-full bg-gray-500 phase-prep transition-all duration-300"></div>
+                <div id="work-indicator" class="w-3 h-3 rounded-full bg-gray-500 opacity-30 transition-all duration-300"></div>
+                <div id="rest-indicator" class="w-3 h-3 rounded-full bg-gray-500 opacity-30 transition-all duration-300"></div>
+            </div>
+
+            <!-- Controles -->
+            <div class="flex justify-center space-x-4">
+                <button id="startBtn" 
+                        class="btn bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 rounded-xl font-semibold shadow-lg shadow-emerald-900/30 w-full">
+                    Iniciar
+                </button>
+                <button id="resetBtn" 
+                        class="btn bg-gradient-to-r from-red-500 to-rose-600 px-6 py-3 rounded-xl font-semibold shadow-lg shadow-rose-900/30 w-full">
+                    Reiniciar
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- Script para las partículas -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    
     <script>
-        const timer = {
-            prepTime: 10,
-            workTime: 20,
-            restTime: 10,
-            rounds: 8,
-            currentRound: 0,
-            currentPhase: 'prep',
-            timeLeft: 0,
-            isRunning: false,
-            interval: null,
-
-            elements: {
-                timer: document.getElementById('timer'),
-                phase: document.getElementById('phase'),
-                roundCounter: document.getElementById('roundCounter'),
-                startBtn: document.getElementById('startBtn'),
-                resetBtn: document.getElementById('resetBtn'),
-                prepInput: document.getElementById('prepTime'),
-                workInput: document.getElementById('workTime'),
-                restInput: document.getElementById('restTime'),
-                roundsInput: document.getElementById('rounds')
+        // Inicializar partículas para el fondo
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 30, density: { enable: true, value_area: 800 } },
+                color: { value: "#ffffff" },
+                shape: {
+                    type: "circle",
+                    stroke: { width: 0, color: "#000000" },
+                    polygon: { nb_sides: 5 }
+                },
+                opacity: {
+                    value: 0.3,
+                    random: true,
+                    anim: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: "#ffffff",
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 0.5,
+                    direction: "none",
+                    random: true,
+                    straight: false,
+                    out_mode: "out",
+                    bounce: false,
+                    attract: { enable: true, rotateX: 600, rotateY: 1200 }
+                }
             },
-
-            init() {
-                this.elements.startBtn.addEventListener('click', () => this.toggleTimer());
-                this.elements.resetBtn.addEventListener('click', () => this.reset());
-                this.reset();
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: { enable: true, mode: "grab" },
+                    onclick: { enable: true, mode: "push" },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                    bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+                    repulse: { distance: 200, duration: 0.4 },
+                    push: { particles_nb: 4 },
+                    remove: { particles_nb: 2 }
+                }
             },
+            retina_detect: true
+        });
+    </script>
+    <script>
+        class TabataTimer {
+            constructor() {
+                this.prepTime = 10;
+                this.workTime = 20;
+                this.restTime = 10;
+                this.rounds = 8;
+                this.currentRound = 0;
+                this.currentPhase = 'prep';
+                this.timeLeft = 0;
+                this.totalTime = 0;
+                this.isRunning = false;
+                this.interval = null;
+                this.audioContext = null;
+                this.audioInitialized = false;
 
-            formatTime(seconds) {
-                const mins = Math.floor(seconds / 60);
-                const secs = seconds % 60;
-                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            },
-
-            updateDisplay() {
-                this.elements.timer.textContent = this.formatTime(this.timeLeft);
-                this.elements.roundCounter.textContent = `Round: ${this.currentRound} / ${this.rounds}`;
+                // Elementos DOM
+                this.timerDisplay = document.getElementById('timer');
+                this.phaseDisplay = document.getElementById('phase');
+                this.roundDisplay = document.getElementById('roundCounter');
+                this.startBtn = document.getElementById('startBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.progressCircle = document.getElementById('progress-circle');
                 
-                this.elements.phase.className = '';
-                switch(this.currentPhase) {
+                // Indicadores de fase
+                this.prepIndicator = document.getElementById('prep-indicator');
+                this.workIndicator = document.getElementById('work-indicator');
+                this.restIndicator = document.getElementById('rest-indicator');
+
+                // Inputs
+                this.prepInput = document.getElementById('prepTime');
+                this.workInput = document.getElementById('workTime');
+                this.restInput = document.getElementById('restTime');
+                this.roundsInput = document.getElementById('rounds');
+
+                // Event Listeners
+                this.startBtn.addEventListener('click', () => this.toggleTimer());
+                this.resetBtn.addEventListener('click', () => this.reset());
+                
+                // Inicializar
+                this.reset();
+                
+                // Inicializar audio al primer clic
+                document.body.addEventListener('click', () => {
+                    if (!this.audioInitialized) {
+                        this.initAudio();
+                    }
+                }, { once: true });
+            }
+            
+            initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.audioInitialized = true;
+                } catch (e) {
+                    console.error('Web Audio API no soportada en este navegador');
+                }
+            }
+            
+            playSound(type) {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // Configurar el tipo de sonido según la fase
+                switch(type) {
                     case 'prep':
-                        this.elements.phase.textContent = 'Preparación';
-                        this.elements.phase.classList.add('phase-prep');
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = 659.25; // Mi
+                        gainNode.gain.value = 0.1;
+                        this.playPattern(oscillator, gainNode, [0.1, 0.1, 0.1], 0.05);
                         break;
                     case 'work':
-                        this.elements.phase.textContent = '¡TRABAJO!';
-                        this.elements.phase.classList.add('phase-work', 'pulse');
+                        oscillator.type = 'triangle';
+                        oscillator.frequency.value = 440; // La
+                        gainNode.gain.value = 0.2;
+                        this.playPattern(oscillator, gainNode, [0.2, 0.1, 0.2], 0.05);
                         break;
                     case 'rest':
-                        this.elements.phase.textContent = 'Descanso';
-                        this.elements.phase.classList.add('phase-rest');
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = 329.63; // Mi más bajo
+                        gainNode.gain.value = 0.1;
+                        this.playPattern(oscillator, gainNode, [0.1, 0.1], 0.05);
+                        break;
+                    case 'countdown':
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = 880; // La agudo
+                        gainNode.gain.value = 0.1;
+                        this.playPattern(oscillator, gainNode, [0.05], 0);
                         break;
                 }
-            },
-
-            playBeep() {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = ctx.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.connect(ctx.destination);
-                oscillator.frequency.value = 800;
+            }
+            
+            playPattern(oscillator, gainNode, durations, pauseTime) {
                 oscillator.start();
-                setTimeout(() => oscillator.stop(), 100);
-            },
-
-            nextPhase() {
-                this.playBeep();
-
-                if (this.currentPhase === 'prep') {
-                    this.currentPhase = 'work';
-                    this.timeLeft = this.workTime;
-                    this.currentRound = 1;
-                } else if (this.currentPhase === 'work') {
-                    if (this.currentRound >= this.rounds) {
-                        this.finish();
-                        return;
-                    }
-                    this.currentPhase = 'rest';
-                    this.timeLeft = this.restTime;
-                } else {
-                    this.currentPhase = 'work';
-                    this.timeLeft = this.workTime;
-                    this.currentRound++;
-                }
                 
-                this.updateDisplay();
-            },
-
-            finish() {
-                this.pause();
-                alert('¡Entrenamiento completado!');
-                this.reset();
-            },
+                let time = this.audioContext.currentTime;
+                
+                durations.forEach((duration, i) => {
+                    // Si no es el primero, añadir pausa entre sonidos
+                    if (i > 0) time += pauseTime;
+                    
+                    // Iniciar sonido
+                    gainNode.gain.setValueAtTime(0, time);
+                    gainNode.gain.linearRampToValueAtTime(0.2, time + 0.01);
+                    
+                    // Finalizar sonido con desvanecimiento
+                    time += duration;
+                    gainNode.gain.linearRampToValueAtTime(0, time + 0.03);
+                });
+                
+                // Detener oscilador después de reproducir el patrón
+                oscillator.stop(time + 0.1);
+            }
 
             toggleTimer() {
                 if (this.isRunning) {
@@ -258,58 +434,263 @@
                 } else {
                     this.start();
                 }
-            },
+            }
 
             start() {
                 if (!this.isRunning) {
-                    if (this.timeLeft === this.prepTime && this.currentPhase === 'prep') {
+                    // Actualizar configuración si el timer no ha iniciado o está en estado reset
+                    if (this.currentRound === 0) {
                         this.updateConfig();
                     }
                     
                     this.isRunning = true;
-                    this.elements.startBtn.textContent = 'Pausar';
-                    this.elements.startBtn.style.backgroundColor = '#FFA500';
+                    this.startBtn.textContent = 'Pausar';
+                    this.startBtn.classList.remove('from-green-500', 'to-emerald-600');
+                    this.startBtn.classList.add('from-yellow-500', 'to-amber-600');
                     
-                    this.interval = setInterval(() => {
-                        this.timeLeft--;
-                        if (this.timeLeft < 0) {
-                            this.nextPhase();
-                        } else {
-                            this.updateDisplay();
-                        }
-                    }, 1000);
+                    // Animación al iniciar
+                    this.startBtn.classList.add('animate-pulse-custom');
+                    setTimeout(() => this.startBtn.classList.remove('animate-pulse-custom'), 500);
+                    
+                    this.interval = setInterval(() => this.tick(), 1000);
+                    
+                    // Efecto de inicio
+                    this.animatePhaseChange();
                 }
-            },
+            }
 
             pause() {
                 this.isRunning = false;
-                this.elements.startBtn.textContent = 'Continuar';
-                this.elements.startBtn.style.backgroundColor = '#4CAF50';
+                this.startBtn.textContent = 'Continuar';
+                this.startBtn.classList.remove('from-yellow-500', 'to-amber-600');
+                this.startBtn.classList.add('from-green-500', 'to-emerald-600');
                 clearInterval(this.interval);
-            },
+                
+                // Efecto de pausa
+                this.timerDisplay.style.opacity = '0.7';
+                setTimeout(() => {
+                    this.timerDisplay.style.opacity = '1';
+                }, 300);
+            }
 
             updateConfig() {
-                this.prepTime = parseInt(this.elements.prepInput.value) || 10;
-                this.workTime = parseInt(this.elements.workInput.value) || 20;
-                this.restTime = parseInt(this.elements.restInput.value) || 10;
-                this.rounds = parseInt(this.elements.roundsInput.value) || 8;
+                this.prepTime = parseInt(this.prepInput.value) || 10;
+                this.workTime = parseInt(this.workInput.value) || 20;
+                this.restTime = parseInt(this.restInput.value) || 10;
+                this.rounds = parseInt(this.roundsInput.value) || 8;
+                
                 this.timeLeft = this.prepTime;
-            },
+                this.totalTime = this.prepTime;
+                this.updateProgressCircle(this.prepTime, this.prepTime);
+            }
 
             reset() {
                 this.updateConfig();
-                clearInterval(this.interval);
                 this.isRunning = false;
                 this.currentRound = 0;
                 this.currentPhase = 'prep';
                 this.timeLeft = this.prepTime;
-                this.elements.startBtn.textContent = 'Iniciar';
-                this.elements.startBtn.style.backgroundColor = '#4CAF50';
+                this.totalTime = this.prepTime;
+                clearInterval(this.interval);
+                
+                this.startBtn.textContent = 'Iniciar';
+                this.startBtn.classList.remove('from-yellow-500', 'to-amber-600', 'animate-pulse-custom');
+                this.startBtn.classList.add('from-green-500', 'to-emerald-600');
+                
+                // Reset visual con animación
+                this.animatePhaseChange();
+                this.updateProgressCircle(this.prepTime, this.prepTime);
+                
+                // Efecto de reset
+                const elements = [this.timerDisplay, this.phaseDisplay, this.roundDisplay];
+                elements.forEach(element => {
+                    element.style.transform = 'scale(0.95)';
+                    element.style.opacity = '0.5';
+                    setTimeout(() => {
+                        element.style.transform = '';
+                        element.style.opacity = '';
+                    }, 300);
+                });
+                
                 this.updateDisplay();
             }
-        };
 
-        document.addEventListener('DOMContentLoaded', () => timer.init());
+            tick() {
+                this.timeLeft--;
+                
+                // Ejecutar cuenta regresiva en los últimos 3 segundos
+                if (this.timeLeft <= 3 && this.timeLeft > 0) {
+                    this.playSound('countdown');
+                    this.flashTimer();
+                }
+                
+                if (this.timeLeft < 0) {
+                    this.nextPhase();
+                }
+                
+                this.updateDisplay();
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+            }
+            
+            flashTimer() {
+                this.timerDisplay.style.animation = 'countdownBlink 0.5s';
+                setTimeout(() => {
+                    this.timerDisplay.style.animation = '';
+                }, 500);
+            }
+
+            nextPhase() {
+                // Determinar la siguiente fase
+                if (this.currentPhase === 'prep') {
+                    this.currentPhase = 'work';
+                    this.timeLeft = this.workTime;
+                    this.totalTime = this.workTime;
+                    this.currentRound++;
+                    this.playSound('work');
+                } else if (this.currentPhase === 'work') {
+                    this.currentPhase = 'rest';
+                    this.timeLeft = this.restTime;
+                    this.totalTime = this.restTime;
+                    this.playSound('rest');
+                } else if (this.currentPhase === 'rest') {
+                    // Verificar si se completaron todos los rounds
+                    if (this.currentRound < this.rounds) {
+                        this.currentPhase = 'work';
+                        this.timeLeft = this.workTime;
+                        this.totalTime = this.workTime;
+                        this.currentRound++;
+                        this.playSound('work');
+                    } else {
+                        // Completó todos los rounds
+                        this.isRunning = false;
+                        clearInterval(this.interval);
+                        this.startBtn.textContent = 'Iniciar';
+                        this.startBtn.classList.remove('from-yellow-500', 'to-amber-600');
+                        this.startBtn.classList.add('from-green-500', 'to-emerald-600');
+                        this.playFinishedAnimation();
+                        return;
+                    }
+                }
+                
+                this.animatePhaseChange();
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+            }
+            
+            playFinishedAnimation() {
+                // Animación de celebración al completar
+                const container = document.querySelector('.container');
+                container.classList.add('animate-pulse-custom');
+                setTimeout(() => {
+                    container.classList.remove('animate-pulse-custom');
+                }, 2000);
+                
+                // Cambiar el color del círculo de progreso para indicar finalización
+                this.progressCircle.setAttribute('stroke', '#10b981');
+                
+                // Mostrar mensaje de finalización
+                this.phaseDisplay.textContent = '¡Completado!';
+                this.phaseDisplay.style.background = 'linear-gradient(135deg, #34d399, #059669)';
+                this.phaseDisplay.style.color = 'white';
+                this.phaseDisplay.style.fontWeight = 'bold';
+                this.phaseDisplay.classList.add('animate-pulse-custom');
+            }
+            
+            updateProgressCircle(current, total) {
+                const circle = this.progressCircle;
+                const radius = parseInt(circle.getAttribute('r'));
+                const circumference = 2 * Math.PI * radius;
+                
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                
+                let percent = 1;
+                if (total > 0) {
+                    percent = current / total;
+                }
+                
+                const offset = circumference - percent * circumference;
+                circle.style.strokeDashoffset = offset;
+                
+                // Cambiar el color según la fase
+                switch (this.currentPhase) {
+                    case 'prep':
+                        circle.setAttribute('stroke', '#F7A958');
+                        break;
+                    case 'work':
+                        circle.setAttribute('stroke', '#00CDAC');
+                        break;
+                    case 'rest':
+                        circle.setAttribute('stroke', '#8693FB');
+                        break;
+                }
+            }
+            
+            animatePhaseChange() {
+                // Reset visual de todos los indicadores
+                [this.prepIndicator, this.workIndicator, this.restIndicator].forEach(indicator => {
+                    indicator.classList.remove('phase-prep', 'phase-work', 'phase-rest');
+                    indicator.classList.add('bg-gray-500');
+                    indicator.style.opacity = '0.3';
+                    indicator.style.transform = 'scale(1)';
+                });
+                
+                // Determinar el indicador activo actual
+                let activeIndicator;
+                let phaseText;
+                let phaseColor;
+                
+                switch (this.currentPhase) {
+                    case 'prep':
+                        activeIndicator = this.prepIndicator;
+                        phaseText = 'Preparación';
+                        phaseColor = 'var(--prep-gradient)';
+                        break;
+                    case 'work':
+                        activeIndicator = this.workIndicator;
+                        phaseText = 'Trabajo';
+                        phaseColor = 'var(--work-gradient)';
+                        break;
+                    case 'rest':
+                        activeIndicator = this.restIndicator;
+                        phaseText = 'Descanso';
+                        phaseColor = 'var(--rest-gradient)';
+                        break;
+                }
+                
+                // Animar el indicador activo
+                if (activeIndicator) {
+                    activeIndicator.classList.remove('bg-gray-500');
+                    activeIndicator.classList.add(`phase-${this.currentPhase}`);
+                    activeIndicator.style.opacity = '1';
+                    activeIndicator.style.transform = 'scale(1.5)';
+                }
+                
+                // Actualizar y animar el texto de fase
+                this.phaseDisplay.style.opacity = '0';
+                this.phaseDisplay.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    this.phaseDisplay.textContent = phaseText;
+                    this.phaseDisplay.style.background = phaseColor;
+                    this.phaseDisplay.style.opacity = '1';
+                    this.phaseDisplay.style.transform = 'translateY(0)';
+                }, 200);
+            }
+
+            updateDisplay() {
+                // Formatear tiempo
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Actualizar ronda
+                this.roundDisplay.textContent = `Round: ${this.currentRound} / ${this.rounds}`;
+            }
+        }
+
+        // Inicializar el timer cuando se carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            const timer = new TabataTimer();
+        });
     </script>
 </body>
 </html>
