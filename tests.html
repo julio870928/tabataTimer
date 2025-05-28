@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabata Timer Tests</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #results { list-style-type: none; padding: 0; }
+        #results li { margin-bottom: 5px; padding: 8px; border-radius: 4px; }
+        #results .pass { background-color: #e6ffe6; border-left: 5px solid #4caf50; }
+        #results .fail { background-color: #ffe6e6; border-left: 5px solid #f44336; }
+        h2 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .summary { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Tabata Timer Unit Tests</h1>
+    <ul id="results"></ul>
+    <div class="summary">
+        <p>Total Tests: <span id="total-tests">0</span></p>
+        <p>Passed: <span id="passed-tests">0</span></p>
+        <p>Failed: <span id="failed-tests">0</span></p>
+    </div>
+
+    <!-- Mock DOM Elements -->
+    <div style="display:none;">
+        <input type="number" id="prepTime" value="10">
+        <input type="number" id="workTime" value="20">
+        <input type="number" id="restTime" value="10">
+        <input type="number" id="rounds" value="8">
+        <div id="timer">00:00</div>
+        <div id="phase">Preparación</div>
+        <div id="roundCounter">Round: 0 / 8</div>
+        <button id="startBtn">Iniciar</button>
+        <button id="resetBtn">Reiniciar</button>
+        <svg><circle id="progress-circle" r="54"></circle></svg>
+        <div id="prep-indicator"></div>
+        <div id="work-indicator"></div>
+        <div id="rest-indicator"></div>
+    </div>
+
+    <script>
+        // --- TabataTimer Class Definition (Copied from index.html) ---
+        class TabataTimer {
+            constructor() {
+                this.prepTime = 10;
+                this.workTime = 20;
+                this.restTime = 10;
+                this.rounds = 8;
+                this.currentRound = 0;
+                this.currentPhase = 'prep'; // Initial phase
+                this.timeLeft = 0;
+                this.totalTime = 0;
+                this.isRunning = false;
+                this.interval = null; // Stores the ID of the interval timer
+                this.audioContext = null;
+                this.audioInitialized = false;
+
+                // DOM Element References
+                this.timerDisplay = document.getElementById('timer');
+                this.phaseDisplay = document.getElementById('phase');
+                this.roundDisplay = document.getElementById('roundCounter');
+                this.startBtn = document.getElementById('startBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.progressCircle = document.getElementById('progress-circle');
+                
+                this.prepIndicator = document.getElementById('prep-indicator');
+                this.workIndicator = document.getElementById('work-indicator');
+                this.restIndicator = document.getElementById('rest-indicator');
+
+                this.prepInput = document.getElementById('prepTime');
+                this.workInput = document.getElementById('workTime');
+                this.restInput = document.getElementById('restTime');
+                this.roundsInput = document.getElementById('rounds');
+
+                // Event Listeners
+                // In a test environment, we might not need real event listeners
+                // or might mock their handlers.
+                if (this.startBtn) this.startBtn.addEventListener('click', () => this.toggleTimer());
+                if (this.resetBtn) this.resetBtn.addEventListener('click', () => this.reset());
+                
+                this.reset(); // Initialize timer state
+
+                // Audio context initialization (simplified for testing, no actual audio)
+                // document.body.addEventListener('click', () => {
+                //     if (!this.audioInitialized) this.initAudio();
+                // }, { once: true });
+            }
+            
+            initAudio() {
+                // Mocked for tests - no actual audio context needed for logic tests
+                this.audioInitialized = true;
+                // console.log("Mock initAudio called");
+            }
+            
+            playSound(type) {
+                // Mocked for tests - no sound playback
+                // console.log(`Mock playSound called with type: ${type}`);
+            }
+            
+            playPattern(oscillator, gainNode, durations, pauseTime) {
+                // Mocked for tests
+            }
+
+            toggleTimer() {
+                if (this.isRunning) {
+                    this.pause();
+                } else {
+                    this.start();
+                }
+            }
+
+            start() {
+                if (!this.isRunning) {
+                    if (this.currentRound === 0 && this.currentPhase === 'prep' && this.timeLeft === (parseInt(this.prepInput.value,10) || 10) ) {
+                        this.updateConfig(); 
+                    }
+                    
+                    this.isRunning = true;
+                    if(this.startBtn) this.startBtn.textContent = 'Pausar';
+                    
+                    // In tests, we'll manage the interval manually or mock it.
+                    // this.interval = setInterval(() => this.tick(), 1000); 
+                    
+                    this.animatePhaseChange();
+                }
+            }
+
+            pause() {
+                this.isRunning = false;
+                if(this.startBtn) this.startBtn.textContent = 'Continuar';
+                if (this.interval) { // Check if interval exists before clearing
+                    clearInterval(this.interval);
+                    this.interval = null; // Reset interval ID
+                }
+            }
+
+            updateConfig() {
+                this.prepTime = parseInt(this.prepInput.value, 10) || 10;
+                this.workTime = parseInt(this.workInput.value, 10) || 20;
+                this.restTime = parseInt(this.restInput.value, 10) || 10;
+                this.rounds = parseInt(this.roundsInput.value, 10) || 8;
+                
+                // When config is updated, if not running, reset timeLeft to new prepTime
+                if (!this.isRunning) {
+                    this.timeLeft = this.prepTime;
+                    this.totalTime = this.prepTime;
+                }
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+                this.updateDisplay(); // Update display after config change
+            }
+
+            reset() {
+                this.isRunning = false;
+                if (this.interval) clearInterval(this.interval);
+                this.interval = null;
+                
+                // Load config which also sets initial timeLeft and totalTime
+                this.updateConfig(); 
+                
+                this.currentRound = 0;
+                this.currentPhase = 'prep';
+                // timeLeft is set to prepTime by updateConfig if not running
+                // totalTime is set to prepTime by updateConfig if not running
+                                
+                if(this.startBtn) this.startBtn.textContent = 'Iniciar';
+                
+                this.animatePhaseChange();
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+                this.updateDisplay();
+            }
+
+            tick() {
+                this.timeLeft--;
+                
+                if (this.timeLeft <= 3 && this.timeLeft > 0) {
+                    this.playSound('countdown');
+                    this.flashTimer();
+                }
+                
+                if (this.timeLeft < 0) {
+                    this.nextPhase();
+                }
+                
+                this.updateDisplay();
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+            }
+            
+            flashTimer() { /* Mocked */ }
+
+            nextPhase() {
+                if (this.currentPhase === 'prep') {
+                    this.currentPhase = 'work';
+                    this.timeLeft = this.workTime;
+                    this.totalTime = this.workTime;
+                    this.currentRound = 1; 
+                    this.playSound('work');
+                } else if (this.currentPhase === 'work') {
+                    if (this.currentRound < this.rounds) {
+                        this.currentPhase = 'rest';
+                        this.timeLeft = this.restTime;
+                        this.totalTime = this.restTime;
+                        this.playSound('rest');
+                    } else {
+                        this.finishWorkout();
+                        return; 
+                    }
+                } else if (this.currentPhase === 'rest') {
+                    this.currentPhase = 'work';
+                    this.timeLeft = this.workTime;
+                    this.totalTime = this.workTime;
+                    this.currentRound++;
+                    this.playSound('work');
+                }
+                
+                this.animatePhaseChange();
+                this.updateProgressCircle(this.timeLeft, this.totalTime);
+            }
+
+            finishWorkout() {
+                this.isRunning = false;
+                if (this.interval) clearInterval(this.interval);
+                this.interval = null;
+                if(this.startBtn) this.startBtn.textContent = 'Iniciar';
+                this.playFinishedAnimation();
+            }
+            
+            playFinishedAnimation() { /* Mocked */ }
+            
+            updateProgressCircle(currentTimeLeft, totalTimeForPhase) { /* Mocked */ }
+            
+            animatePhaseChange() { /* Mocked */ }
+
+            updateDisplay() {
+                // This might be called, but we don't assert its output for logic tests
+                // if (this.timerDisplay) {
+                //     const minutes = Math.floor(this.timeLeft / 60);
+                //     const seconds = this.timeLeft % 60;
+                //     this.timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                // }
+                // if (this.roundDisplay) {
+                //     const displayRound = (this.currentPhase === 'prep' && this.currentRound === 0) ? 0 : this.currentRound;
+                //     this.roundDisplay.textContent = `Round: ${displayRound} / ${this.rounds}`;
+                // }
+            }
+        }
+    </script>
+
+    <script>
+        // --- Test Runner ---
+        const resultsList = document.getElementById('results');
+        let testsRun = 0;
+        let testsPassed = 0;
+        let testsFailed = 0;
+
+        function runTest(testName, testFn) {
+            testsRun++;
+            try {
+                testFn();
+                logResult(testName, true);
+                testsPassed++;
+            } catch (e) {
+                logResult(testName, false, e.message);
+                testsFailed++;
+            }
+            updateSummary();
+        }
+
+        function logResult(testName, passed, errorMessage = '') {
+            const li = document.createElement('li');
+            li.className = passed ? 'pass' : 'fail';
+            li.textContent = `${testName}: ${passed ? 'PASSED' : 'FAILED'}${errorMessage ? ` (${errorMessage})` : ''}`;
+            resultsList.appendChild(li);
+        }
+        
+        function updateSummary() {
+            document.getElementById('total-tests').textContent = testsRun;
+            document.getElementById('passed-tests').textContent = testsPassed;
+            document.getElementById('failed-tests').textContent = testsFailed;
+        }
+
+        function assertEquals(expected, actual, message) {
+            if (expected !== actual) {
+                throw new Error(`${message} - Expected: ${expected}, Actual: ${actual}`);
+            }
+        }
+        
+        function assertNotEquals(unexpected, actual, message) {
+             if (unexpected === actual) {
+                throw new Error(`${message} - Unexpected: ${unexpected}, Actual: ${actual}`);
+            }
+        }
+
+        function assertTrue(actual, message) {
+            if (actual !== true) {
+                throw new Error(`${message} - Expected: true, Actual: ${actual}`);
+            }
+        }
+
+        function assertFalse(actual, message) {
+            if (actual !== false) {
+                throw new Error(`${message} - Expected: false, Actual: ${actual}`);
+            }
+        }
+
+        // --- Mocking global timer functions ---
+        let mockIntervals = {};
+        let nextIntervalId = 1;
+        let originalSetInterval = window.setInterval;
+        let originalClearInterval = window.clearInterval;
+
+        function mockSetInterval(fn, delay) {
+            const id = nextIntervalId++;
+            mockIntervals[id] = { fn: fn, delay: delay, originalId: null }; 
+            // We don't actually call fn repeatedly here for tests,
+            // tests will call timer.tick() manually.
+            // console.log(`Mock setInterval called, id: ${id}`);
+            return id;
+        }
+
+        function mockClearInterval(id) {
+            // console.log(`Mock clearInterval called, id: ${id}`);
+            if (mockIntervals[id]) {
+                // If we had a real interval running: originalClearInterval(mockIntervals[id].originalId);
+                delete mockIntervals[id];
+            }
+        }
+
+        // --- Test Setup ---
+        function setupTestEnvironment() {
+            // Create a new timer instance before each test group or test
+            // For simplicity, we'll create it inside tests or use a global one for a suite.
+            // Mock global timer functions
+            window.setInterval = mockSetInterval;
+            window.clearInterval = mockClearInterval;
+            mockIntervals = {}; // Reset
+            nextIntervalId = 1;
+        }
+
+        function teardownTestEnvironment() {
+            // Restore original functions if necessary
+            window.setInterval = originalSetInterval;
+            window.clearInterval = originalClearInterval;
+        }
+
+
+        // --- Test Cases ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTestEnvironment(); // Setup mocks once before all tests
+
+            let timer; // To be initialized in each test or a beforeEach like setup
+
+            // Helper to reset and get a fresh timer with mock inputs
+            function getFreshTimer() {
+                document.getElementById('prepTime').value = "10";
+                document.getElementById('workTime').value = "20";
+                document.getElementById('restTime').value = "10";
+                document.getElementById('rounds').value = "8";
+                return new TabataTimer();
+            }
+            
+            // --- Initialization Tests ---
+            runTest("Initialization: Default values", () => {
+                timer = getFreshTimer(); // Uses default values from mock DOM
+                assertEquals(10, timer.prepTime, "Default prepTime");
+                assertEquals(20, timer.workTime, "Default workTime");
+                assertEquals(10, timer.restTime, "Default restTime");
+                assertEquals(8, timer.rounds, "Default rounds");
+                assertEquals(0, timer.currentRound, "Initial currentRound");
+                assertEquals('prep', timer.currentPhase, "Initial currentPhase");
+                assertEquals(10, timer.timeLeft, "Initial timeLeft (should be prepTime)");
+                assertFalse(timer.isRunning, "Initial isRunning state");
+                assertEquals(null, timer.interval, "Initial interval ID");
+            });
+
+            // --- Configuration Update Tests ---
+            runTest("Configuration: updateConfig()", () => {
+                timer = getFreshTimer();
+                document.getElementById('prepTime').value = "5";
+                document.getElementById('workTime').value = "15";
+                document.getElementById('restTime').value = "5";
+                document.getElementById('rounds').value = "3";
+                
+                timer.updateConfig(); // This is called by reset() too, so direct call might be redundant if reset covers it
+                                      // For this test, we are assuming timer is in a state where updateConfig is called directly
+                                      // or its effects are isolated.
+
+                assertEquals(5, timer.prepTime, "Updated prepTime");
+                assertEquals(15, timer.workTime, "Updated workTime");
+                assertEquals(5, timer.restTime, "Updated restTime");
+                assertEquals(3, timer.rounds, "Updated rounds");
+                // If timer wasn't running, timeLeft should update to new prepTime
+                assertEquals(5, timer.timeLeft, "TimeLeft after config update (not running)"); 
+            });
+
+            runTest("Configuration: updateConfig() with invalid values uses defaults", () => {
+                timer = getFreshTimer();
+                document.getElementById('prepTime').value = ""; // Invalid
+                document.getElementById('workTime').value = "abc"; // Invalid
+                document.getElementById('restTime').value = "0"; // Valid, but let's test one more invalid
+                document.getElementById('rounds').value = "-5"; // Invalid (though min is 1 in HTML)
+                
+                timer.updateConfig();
+
+                assertEquals(10, timer.prepTime, "Fallback prepTime for empty string");
+                assertEquals(20, timer.workTime, "Fallback workTime for 'abc'");
+                assertEquals(10, timer.restTime, "Fallback restTime for 0 (assuming our default is 10, not 0)");
+                assertEquals(8, timer.rounds, "Fallback rounds for negative");
+            });
+            
+            // --- Timer Lifecycle Tests ---
+            runTest("Lifecycle: start()", () => {
+                timer = getFreshTimer();
+                timer.start();
+                assertTrue(timer.isRunning, "isRunning after start");
+                assertNotEquals(null, timer.interval, "Interval ID after start"); // Check if mockSetInterval was called
+                // Note: actual timing/ticks are not tested here, just state change
+            });
+
+            runTest("Lifecycle: pause()", () => {
+                timer = getFreshTimer();
+                timer.start(); // Start it first
+                const intervalId = timer.interval;
+                timer.pause();
+                assertFalse(timer.isRunning, "isRunning after pause");
+                assertEquals(null, timer.interval, "Interval ID after pause (should be cleared by mockClearInterval)");
+                assertTrue(mockIntervals[intervalId] === undefined, "Interval cleared from mock tracker");
+            });
+
+            runTest("Lifecycle: reset()", () => {
+                timer = getFreshTimer();
+                document.getElementById('prepTime').value = "5"; // Change config
+                timer.start();
+                timer.tick(); // Advance timer a bit
+                timer.reset();
+
+                assertFalse(timer.isRunning, "isRunning after reset");
+                assertEquals(null, timer.interval, "Interval ID after reset");
+                assertEquals(5, timer.prepTime, "prepTime after reset (should re-read config)");
+                assertEquals(0, timer.currentRound, "currentRound after reset");
+                assertEquals('prep', timer.currentPhase, "currentPhase after reset");
+                assertEquals(5, timer.timeLeft, "timeLeft after reset (new prepTime)");
+            });
+
+            // --- Time Calculation (tick) Tests ---
+            runTest("Time Calculation: tick() decrements timeLeft", () => {
+                timer = getFreshTimer();
+                timer.timeLeft = 5; // Set manually for test
+                timer.tick();
+                assertEquals(4, timer.timeLeft, "timeLeft after one tick");
+            });
+
+            runTest("Time Calculation: tick() triggers nextPhase when timeLeft goes below 0", () => {
+                timer = getFreshTimer();
+                timer.currentPhase = 'prep';
+                timer.timeLeft = 0; // About to go to -1
+                timer.tick(); // timeLeft becomes -1, should trigger nextPhase
+                
+                assertEquals('work', timer.currentPhase, "Phase transitions to work after prep time ends");
+                assertEquals(timer.workTime, timer.timeLeft, "timeLeft set to workTime");
+            });
+
+            // --- Phase Transition Tests ---
+            runTest("Phase Transitions: prep -> work", () => {
+                timer = getFreshTimer(); // Starts in prep
+                timer.timeLeft = 0;
+                timer.tick(); // Should transition
+                assertEquals('work', timer.currentPhase, "Phase is work");
+                assertEquals(1, timer.currentRound, "Round is 1");
+                assertEquals(timer.workTime, timer.timeLeft, "TimeLeft is workTime");
+            });
+
+            runTest("Phase Transitions: work -> rest (mid-rounds)", () => {
+                timer = getFreshTimer();
+                timer.currentPhase = 'work';
+                timer.currentRound = 1;
+                timer.rounds = 2; // Ensure we're not at the last round
+                timer.timeLeft = 0;
+                timer.tick(); // Should transition
+                assertEquals('rest', timer.currentPhase, "Phase is rest");
+                assertEquals(timer.restTime, timer.timeLeft, "TimeLeft is restTime");
+                assertEquals(1, timer.currentRound, "Round remains 1 during rest");
+            });
+
+            runTest("Phase Transitions: rest -> work", () => {
+                timer = getFreshTimer();
+                timer.currentPhase = 'rest';
+                timer.currentRound = 1;
+                timer.rounds = 2;
+                timer.timeLeft = 0;
+                timer.tick(); // Should transition
+                assertEquals('work', timer.currentPhase, "Phase is work");
+                assertEquals(2, timer.currentRound, "Round increments to 2");
+                assertEquals(timer.workTime, timer.timeLeft, "TimeLeft is workTime");
+            });
+
+            // --- Round Counting & Workout Completion ---
+            runTest("Round Counting: Full cycle (1 round)", () => {
+                timer = getFreshTimer();
+                timer.prepTime = 1; timer.workTime = 1; timer.restTime = 1; timer.rounds = 1;
+                timer.reset(); // Apply these new short times
+
+                // Prep
+                assertEquals('prep', timer.currentPhase);
+                assertEquals(0, timer.currentRound);
+                assertEquals(1, timer.timeLeft);
+                timer.tick(); // timeLeft = 0
+                timer.tick(); // timeLeft = -1, nextPhase: work (round 1)
+                
+                // Work
+                assertEquals('work', timer.currentPhase);
+                assertEquals(1, timer.currentRound);
+                assertEquals(1, timer.timeLeft);
+                timer.tick(); // timeLeft = 0
+                timer.tick(); // timeLeft = -1, nextPhase: finishWorkout (because rounds = 1)
+                
+                assertFalse(timer.isRunning, "Timer stops after final round's work phase");
+            });
+            
+            runTest("Round Counting: Multiple rounds (2 rounds)", () => {
+                timer = getFreshTimer();
+                timer.prepTime = 1; timer.workTime = 1; timer.restTime = 1; timer.rounds = 2;
+                timer.reset();
+
+                // Prep
+                timer.tick(); timer.tick(); // End of Prep, start Work (R1)
+                assertEquals('work', timer.currentPhase); assertEquals(1, timer.currentRound);
+
+                // Work R1
+                timer.tick(); timer.tick(); // End of Work R1, start Rest R1
+                assertEquals('rest', timer.currentPhase); assertEquals(1, timer.currentRound);
+
+                // Rest R1
+                timer.tick(); timer.tick(); // End of Rest R1, start Work R2
+                assertEquals('work', timer.currentPhase); assertEquals(2, timer.currentRound);
+                
+                // Work R2
+                timer.tick(); timer.tick(); // End of Work R2 (final round), workout finishes
+                assertFalse(timer.isRunning, "Timer stops after final round (R2)");
+                assertEquals('work', timer.currentPhase, "Phase remains 'work' on finishWorkout from work");
+            });
+
+
+            // --- Final Test: Test `start` behavior after config update (edge case from constructor) ---
+            runTest("Lifecycle: start() after config update before first actual start", () => {
+                // This test is to ensure that if config is changed before the timer is ever started,
+                // the start() method correctly uses the updated config.
+                // The TabataTimer constructor calls reset(), which calls updateConfig().
+                // Then, if we change inputs and call start(), it should pick up new values.
+                
+                timer = getFreshTimer(); // Initial config: P:10, W:20, R:10, Rds:8. timeLeft=10 (prep)
+
+                // Simulate user changing config before ever pressing start
+                document.getElementById('prepTime').value = "3";
+                document.getElementById('workTime').value = "6";
+                // timer.updateConfig() is NOT called here explicitly by test, 
+                // but timer.start() has logic to call it if it's a "fresh" start.
+
+                timer.start(); // Should call updateConfig() internally due to fresh start conditions
+
+                assertEquals(3, timer.prepTime, "prepTime on first start after inputs changed");
+                assertEquals(6, timer.workTime, "workTime on first start after inputs changed");
+                assertEquals('prep', timer.currentPhase, "Phase should still be prep");
+                assertEquals(3, timer.timeLeft, "TimeLeft should be new prepTime");
+                assertTrue(timer.isRunning, "Timer should be running");
+            });
+
+
+            teardownTestEnvironment(); // Clean up mocks if they were global
+        });
+    </script>
+</body>
+</html>
